@@ -1,0 +1,134 @@
+h1, h2, h3 { margin: 0; }
+
+/* h2 {
+	font-size: 14px;
+} */
+
+body {
+	min-height: 100vh;
+	margin: 0;
+	padding: 0;
+	background: linear-gradient(to bottom right, rgb(139, 28, 145), rgb(50, 182, 177));
+	color: rgb(224, 224, 224);
+	font-size: 18px;
+}
+
+header, main {
+	padding: 0.5rem 2rem;
+}
+
+p {
+	margin: 0.25em 0;
+}
+hr {
+	border: none;
+	border-bottom: 3px solid rgb(60, 60, 60);
+	/* border: 2px solid rgb(68, 36, 157); */
+	/* box-shadow: 0px 2px 3px 1px rgb(45, 20, 112); */
+	margin: 1em 0em;
+}
+header {
+	/* border-bottom: 4px solid rgb(103, 19, 103); */
+
+	h2 {
+		/* font-style: italic; */
+		font-weight: normal;
+		font-size: 1.2rem;
+	}
+}
+main {
+	h2 {
+		font-size: 1.25rem;
+		margin-bottom: 0.25em;
+	}
+}
+
+.intro {
+	font-style: italic;
+	margin: 0;
+}
+button {
+	padding: 0.5em 1.4em;
+	border-radius: 0.4em;
+	border: none;
+	background: linear-gradient(to bottom right, rgb(38, 152, 148), rgb(113, 20, 118));
+	color: white;
+	font-weight: bold;
+	font-size: 0.9em;
+	transition: all 0.7s;
+
+	&:hover {
+		background: linear-gradient(to bottom right, rgb(52, 179, 175), rgb(143, 31, 149));
+		cursor: pointer;
+	}
+}
+.form {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75em;
+	margin: 1em 0;
+
+	.item {
+		display: flex;
+		flex-direction: column;
+	}
+
+	label {
+		/* margin-top: 0.75em; */
+		font-weight: bold;
+	}
+
+	input {
+		background-color: rgb(248, 221, 249);
+		font-size: 1em;
+		padding: 0.2em 0.4em;
+		border-radius: 2px;
+		border: 3px solid rgb(60, 60, 60);
+	}
+}
+
+.books {
+	margin-top: 0.5em;
+	display: flex;
+	flex-direction: column;
+	/* gap: 0.25em; */
+
+
+	.item {
+		display: flex;
+		background-color: rgb(36, 15, 107);
+		padding: 0 1em;
+		align-items: center;
+
+		&:nth-child(2n) {
+			background-color: rgb(51, 24, 139);
+		}
+		&:first-child { border-radius: 8px 8px 0 0; }
+		&:last-child { border-radius: 0 0 8px 8px; }
+
+		& > * { flex: 1; }
+		& > :nth-child(2) { flex: 0 0 5em; }
+		& > :nth-child(3) { flex: 0 0 6.5em; }
+
+
+	}
+
+	/* & > * { border: 1px solid hotpink;} */
+	button {
+		align-self: center;
+		padding: 0.5em 0em;
+		border-radius: 0.4em;
+		border: 2px solid rgb(108, 93, 241);
+		background: transparent;
+		color: white;
+		font-weight: bold;
+		font-size: 0.9em;
+		transition: all 0.7s;
+
+		&:hover {
+			border: none;
+			background: linear-gradient(to bottom right, rgb(52, 179, 175), rgb(143, 31, 149));
+			cursor: pointer;
+		}
+	}
+}
