@@ -7,8 +7,8 @@ Biblioteket Götebok har en inloggningstjänst. När man är inloggad kan man vi
 Backend endpoints som behövs:
 <!-- TODO: backend GET /books -->
 <!-- TODO: backend POST /register -->
-<!-- TODO: backend GET /signin -->
-<!-- TODO: backend GET /signout -->
+<!-- TODO: backend POST /signin -->
+<!-- TODO: backend POST /signout -->
 ```text
 GET /books
 Hämtar status för böckerna. Kräver inloggning.
