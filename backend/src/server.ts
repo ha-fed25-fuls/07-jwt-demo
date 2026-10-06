@@ -1,7 +1,7 @@
 // import
 import express, { type Express, type RequestHandler } from 'express'
-import jwt from 'jsonwebtoken'
-const { sign, verify } = jwt  // nödvändigt eftersom jsonwebtoken är ett CommonJS paket
+import jwt, { type Jwt } from 'jsonwebtoken'
+const { sign, verify, JsonWebTokenError, TokenExpiredError } = jwt  // nödvändigt eftersom jsonwebtoken är ett CommonJS paket
 
 // konfiguration
 const app: Express = express()
@@ -74,11 +74,62 @@ const userDb: UserCredentials[] = [
 	{ uuid: '1', username: 'Valentino', password: 'hotpink' }
 ]
 
+
+type Book = {
+	id: string;
+	title: string;
+	author: string;
+	borrowStatus: string;
+}
+app.get<{}, Book[]>('/api/books', (req, res) => {
+	// finns Authorization header?
+	// kolla om användaren i auth header finns i databasen
+	// om ja: svara med boklistan
+	const auth: string | undefined = req.headers.authorization
+	if( !auth ) {
+		res.sendStatus(401)
+		return
+	}
+
+	// plocka bort "Bearer " från auth-strängen
+	// console.log('Auth before:   ' + auth)
+	const token = auth.substring(7)
+	// console.log('Auth after:    ' + token)
+	try {
+		// Verify kan kasta fel om token är för gammal eller felaktig
+		const verifiedToken = verify(token, SECRET)
+		// console.log('Auth verified:  ', verifiedToken)
+
+		res.status(200).send(books)
+		return
+
+	} catch(error: unknown) {
+		if( error instanceof TokenExpiredError ) {
+			console.log('För gammal token! Var snabbare nästa gång, eller logga in igen!')
+			res.sendStatus(401)
+			return
+		} else if( error instanceof JsonWebTokenError ) {
+			console.log('Felaktig token! Logga in igen!')
+			res.sendStatus(401)
+			return
+		}
+		const message = (error instanceof Error) ? error.message : String(error)
+		console.log('Okänt fel!', message)
+		res.sendStatus(500) // okänt fel
+	}
+})
+const books: Book[] = [
+	{ id: '1', title: 'Fellowship of the Ring', author: 'J.R.R. Tolkien', borrowStatus: 'lånad' },
+	{ id: '2', title: 'The Two Towers', author: 'J.R.R. Tolkien', borrowStatus: 'tillgänglig' },
+	{ id: '3', title: 'Return of the King', author: 'J.R.R. Tolkien', borrowStatus: 'tillgänglig' },
+]
+
+
 // Backend endpoints som behövs:
 // <!-- TODO: backend GET /books -->
 // <!-- TODO: backend POST /register (senare) -->
 // <!-- TODO: backend POST /signin -->
-// <!-- TODO: backend POST /signout -->
+// "signout" görs i frontend!
 
 // listen
 app.listen(port, () => {
