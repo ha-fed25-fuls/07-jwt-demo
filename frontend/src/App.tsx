@@ -1,12 +1,17 @@
 import { useState } from 'react'
 import './App.css'
 
+type Form = { username: string; password: string; }
+type TokenResponse = {
+	jwt: string;
+}
+
 const App = () => {
 	// Formulärdata
-	const [form, setForm] = useState({
+	const [form, setForm] = useState<Form>({
 		username: '',
 		password: ''
-	})  // TODO type
+	})
 
 	// Användarinformation. Giltig användare betyder att man är inloggad.
 	const [user, setUser] = useState(null)  // TODO type
@@ -18,6 +23,31 @@ const App = () => {
 	const [messages, setMessages] = useState([])  // TODO type
 
 	const isAuthenticated = false  // TODO beräkna från state-variabler
+
+
+	const handleLogIn = async () => {
+		// bygg ett fetch-request
+		// skicka till backend /api/login , vänta på svaret TokenResponse
+		// spara JWT i localStorage
+		// uppdatera state: setUser
+
+		try {
+			// Kom ihåg proxy-inställningen
+			const response = await fetch('/api/login', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(form)
+			})
+			console.log(`Response status: `, response.status)
+
+
+		} catch(error) {
+			// TODO
+		}
+	}
+
 
 	// TODO kom ihåg att lyfta ut kod till komponenter
 	return (
@@ -41,14 +71,14 @@ const App = () => {
 
 					<section className="item">
 					<label> Lösenord </label>
-					<input type="number"
+					<input type="password"
 						value={form.password}
 						onChange={event => setForm({ ...form, password: event.target.value })}
 						/>
 					</section>
 
 					<div>
-						<button> Logga in </button>
+						<button onClick={handleLogIn}> Logga in </button>
 					</div>
 
 					{/* TODO: visa meddelanden, validering, misslyckad inloggning med mera */}

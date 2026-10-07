@@ -1,11 +1,11 @@
-import type { UserCredentials } from "./types.ts"
+import type { LoginCredentials, UserCredentials } from "./types.ts"
 
-export function getUser(input: UserCredentials): UserCredentials | undefined {
+export function getUser(input: LoginCredentials): UserCredentials | undefined {
 	return userDb.find(u => usersMatch(input, u))
 }
 
 
-function usersMatch(input: UserCredentials, fromDb: UserCredentials): boolean {
+function usersMatch(input: LoginCredentials, fromDb: UserCredentials): boolean {
 	// Vi förväntar oss att frontend trimmar strängarna och kräver att strängarna är exakt lika
 	if( input.username === fromDb.username && input.password === fromDb.password ) {
 		return true

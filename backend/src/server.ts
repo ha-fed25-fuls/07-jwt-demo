@@ -3,7 +3,7 @@ import express, { type Express, type RequestHandler } from 'express'
 import jwt, { type Jwt } from 'jsonwebtoken'
 import * as z from 'zod'
 import { logger, requireAuth } from './middleware.ts'
-import { type TokenResponse, type UserCredentials, type JwtPayload, userCredSchema, type Book } from './types.ts'
+import { type TokenResponse, type UserCredentials, type JwtPayload, userCredSchema, type Book, type LoginCredentials, loginCredSchema } from './types.ts'
 import { getUser } from './fakeDb.ts'
 import { checkEnvFile } from './utils.ts'
 const { sign } = jwt  // nödvändigt eftersom jsonwebtoken är ett CommonJS paket
@@ -23,15 +23,16 @@ app.use(express.json())
 const SECRET = '1234'  // denna ska finnas i .env-filen. OBS! Använd ett SUPERSÄKERT lösenord när du gör detta på riktigt!
 
 
-app.post<{}, void | TokenResponse, UserCredentials>('/api/login', (req, res) => {
+app.post<{}, void | TokenResponse, LoginCredentials>('/api/login', (req, res) => {
 	// kontrollera om användaren finns
-	const parsed = z.safeParse(userCredSchema, req.body)
+	const parsed = z.safeParse(loginCredSchema, req.body)
 	if( !parsed.success ) {
 		// body är felaktig, svara med 400
+		console.log('Felaktig body: ', req.body)
 		res.sendStatus(400) // Bad request
 		return
 	}
-	const input: UserCredentials = parsed.data
+	const input: LoginCredentials = parsed.data
 
 	// Använder en fejkad databas för att illustrera principen
 	const maybeUser: UserCredentials | undefined = getUser(input)

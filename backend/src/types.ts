@@ -7,6 +7,8 @@ export const userCredSchema = z.object({
 })
 export type UserCredentials = z.infer<typeof userCredSchema>
 
+export const loginCredSchema = userCredSchema.omit({ uuid: true })
+export type LoginCredentials = z.infer<typeof loginCredSchema>
 
 export type TokenResponse = {
 	jwt: string;
