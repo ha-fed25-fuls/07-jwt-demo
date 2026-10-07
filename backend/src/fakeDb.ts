@@ -46,7 +46,7 @@ export async function createUser(creds: LoginCredentials): Promise<string> {
 
 // Denna "databas" använder username istället för id
 const userDb: UserCredentials[] = [
-	// { uuid: '1', username: 'Valentino', password: 'hotpink' }
+	{ uuid: '1', username: 'Valentino', password: '$2b$10$BUIb//vlLNht8l5PI8eBYeGK.AFWP23FY1DfZ2HzCtPUQ.f8cNA7S' }
 ]
 
 
