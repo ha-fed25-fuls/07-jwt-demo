@@ -14,7 +14,7 @@ const App = () => {
 	})
 
 	// Användarinformation. Giltig användare betyder att man är inloggad.
-	const [user, setUser] = useState(null)  // TODO type
+	const [user, setUser] = useState<string>('')
 
 	// Data som hämtas från backend.
 	const [data, setData] = useState([])  // TODO type
@@ -22,8 +22,10 @@ const App = () => {
 	// Meddelanden från backend
 	const [messages, setMessages] = useState([])  // TODO type
 
-	const isAuthenticated = false  // TODO beräkna från state-variabler
+	const isAuthenticated: boolean = user !== ''  // beräkna från state-variabler
 
+
+	const LS_KEY = 'gotebok-jwt'
 
 	const handleLogIn = async () => {
 		// bygg ett fetch-request
@@ -42,10 +44,21 @@ const App = () => {
 			})
 			console.log(`Response status: `, response.status)
 
+			const data: unknown = await response.json()
+			// TODO: validera TokenResponse
+			const token = (data as TokenResponse).jwt
+			localStorage.setItem(LS_KEY, token)
+
+			// Nu vet vi att användaren är autentiserad - spara användarnamnet
+			setUser(form.username)
 
 		} catch(error) {
 			// TODO
 		}
+	}
+
+	const handleLogOut = () => {
+		setUser('')
 	}
 
 
@@ -59,67 +72,79 @@ const App = () => {
 			</header>
 			<main>
 				{/* TODO: visas när man inte är inloggad */}
-				<h2> Logga in </h2>
-				<section className="form">
-					<section className="item">
-					<label> Användarnamn </label>
-					<input type="text"
-						value={form.username}
-						onChange={event => setForm({ ...form, username: event.target.value })}
-						/>
+				{!isAuthenticated && (
+					<>
+					<h2> Logga in </h2>
+					<section className="form">
+						<section className="item">
+						<label> Användarnamn </label>
+						<input type="text"
+							value={form.username}
+							onChange={event => setForm({ ...form, username: event.target.value })}
+							/>
+						</section>
+
+						<section className="item">
+						<label> Lösenord </label>
+						<input type="password"
+							value={form.password}
+							onChange={event => setForm({ ...form, password: event.target.value })}
+							/>
+						</section>
+
+						<div>
+							<button onClick={handleLogIn}> Logga in </button>
+						</div>
+
+						{/* TODO: visa meddelanden, validering, misslyckad inloggning med mera */}
+						<p className="messages"> </p>
 					</section>
-
-					<section className="item">
-					<label> Lösenord </label>
-					<input type="password"
-						value={form.password}
-						onChange={event => setForm({ ...form, password: event.target.value })}
-						/>
-					</section>
-
-					<div>
-						<button onClick={handleLogIn}> Logga in </button>
-					</div>
-
-					{/* TODO: visa meddelanden, validering, misslyckad inloggning med mera */}
-					<p className="messages"> </p>
-				</section>
+					</>
+				)}
 
 				<hr />
 				{/* TODO: visas bara när man är inloggad */}
-				<h2> Logga ut </h2>
-				<section className="form">
-					<div>
-						<button> Logga ut </button>
-					</div>
-				</section>
+				{isAuthenticated && (
+					<>
+					<h2> Logga ut </h2>
+					<section className="form">
+						<div>
+							<button onClick={handleLogOut}> Logga ut </button>
+						</div>
+					</section>
+					</>
+				)}
 
 				<hr />
 
 				<h2> Mina favoritböcker </h2>
-				{/* TODO: visas bara när man är inloggad */}
-
 				<button> Hämta data </button>
+				{/* TODO: visas bara när man är inloggad */}
+				{isAuthenticated ? (
+					<>
+					<div className="books">
+						<section className="item">
+							<p> Fellowship of the Ring, J.R.R. Tolkien </p>
+							<p> Status: lånad </p>
+							<button> Återlämna </button>
+						</section>
 
-				<div className="books">
-					<section className="item">
-						<p> Fellowship of the Ring, J.R.R. Tolkien </p>
-						<p> Status: lånad </p>
-						<button> Återlämna </button>
-					</section>
+						<section className="item">
+							<p> The Two Towers, J.R.R. Tolkien </p>
+							<p> Status: tillgänglig </p>
+							<button> Låna </button>
+						</section>
 
-					<section className="item">
-						<p> The Two Towers, J.R.R. Tolkien </p>
-						<p> Status: tillgänglig </p>
-						<button> Låna </button>
-					</section>
-
-					<section className="item">
-						<p> Return of the King, J.R.R. Tolkien </p>
-						<p> Status: tillgänglig </p>
-						<button> Låna </button>
-					</section>
-				</div>
+						<section className="item">
+							<p> Return of the King, J.R.R. Tolkien </p>
+							<p> Status: tillgänglig </p>
+							<button> Låna </button>
+						</section>
+					</div>
+					</>
+				) : (
+					<p> Logga in för att se dina böcker. </p>
+				)}
 
 			</main>
 		</div>
