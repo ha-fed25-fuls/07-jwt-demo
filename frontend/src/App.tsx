@@ -5,6 +5,13 @@ type Form = { username: string; password: string; }
 type TokenResponse = {
 	jwt: string;
 }
+type Book = {
+	id: string;
+	title: string;
+	author: string;
+	borrowStatus: string;
+}
+
 
 const App = () => {
 	// Formulärdata
@@ -17,10 +24,10 @@ const App = () => {
 	const [user, setUser] = useState<string>('')
 
 	// Data som hämtas från backend.
-	const [data, setData] = useState([])  // TODO type
+	const [data, setData] = useState<Book[]>([])
 
 	// Meddelanden från backend
-	const [messages, setMessages] = useState([])  // TODO type
+	const [messages, setMessages] = useState<string[]>([])
 
 	const isAuthenticated: boolean = user !== ''  // beräkna från state-variabler
 
@@ -61,6 +68,31 @@ const App = () => {
 		setUser('')
 	}
 
+	const handleGetBooks = async () => {
+		// bygg fetch request
+		// skicka till servern, vänta på svaret
+		try {
+			const token = localStorage.getItem(LS_KEY)
+			const response = await fetch('/api/books', {
+				headers: {
+					'Authorization': `Bearer ${token}`
+				}
+			})
+			if( response.status > 299 ) {
+				setMessages([`Fel vid hämtning av böcker: ${response.status}.`, ...messages])
+				return
+			}
+			const data: unknown = await response.json()
+			console.log('Data from server:', data)
+			// TODO: validera datan med zod-schema
+			setData(data as Book[])  // fuska för att spara tid
+
+		} catch(error) {
+			const message: string = (error instanceof Error) ? error.message : String(error)
+			console.log('get books, något gick fel: ', message)
+		}
+	}
+
 
 	// TODO kom ihåg att lyfta ut kod till komponenter
 	return (
@@ -71,7 +103,6 @@ const App = () => {
 				<hr />
 			</header>
 			<main>
-				{/* TODO: visas när man inte är inloggad */}
 				{!isAuthenticated && (
 					<>
 					<h2> Logga in </h2>
@@ -96,14 +127,17 @@ const App = () => {
 							<button onClick={handleLogIn}> Logga in </button>
 						</div>
 
-						{/* TODO: visa meddelanden, validering, misslyckad inloggning med mera */}
-						<p className="messages"> </p>
 					</section>
 					</>
 				)}
+				{/* TODO: visa meddelanden, validering, misslyckad inloggning med mera */}
+				<ul className="messages">
+					{messages.map((m, index) => (
+						<li key={index}> {m} </li>
+					))}
+				</ul>
 
 				<hr />
-				{/* TODO: visas bara när man är inloggad */}
 				{isAuthenticated && (
 					<>
 					<h2> Logga ut </h2>
@@ -118,28 +152,17 @@ const App = () => {
 				<hr />
 
 				<h2> Mina favoritböcker </h2>
-				<button> Hämta data </button>
-				{/* TODO: visas bara när man är inloggad */}
+				<button onClick={handleGetBooks}> Hämta data </button>
 				{isAuthenticated ? (
 					<>
 					<div className="books">
-						<section className="item">
-							<p> Fellowship of the Ring, J.R.R. Tolkien </p>
-							<p> Status: lånad </p>
-							<button> Återlämna </button>
-						</section>
-
-						<section className="item">
-							<p> The Two Towers, J.R.R. Tolkien </p>
-							<p> Status: tillgänglig </p>
-							<button> Låna </button>
-						</section>
-
-						<section className="item">
-							<p> Return of the King, J.R.R. Tolkien </p>
-							<p> Status: tillgänglig </p>
-							<button> Låna </button>
-						</section>
+						{data.map(book => (
+							<section key={book.id} className="item">
+								<p> {book.title}, {book.author} </p>
+								<p> Status: {book.borrowStatus} </p>
+								<button> {book.borrowStatus === 'lånad' ? 'Återlämna' : 'Låna' } </button>
+							</section>
+						))}
 					</div>
 					</>
 				) : (
