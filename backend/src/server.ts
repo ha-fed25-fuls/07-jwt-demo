@@ -1,52 +1,40 @@
 // import
 import express, { type Express, type RequestHandler } from 'express'
 import jwt, { type Jwt } from 'jsonwebtoken'
-const { sign, verify, JsonWebTokenError, TokenExpiredError } = jwt  // nödvändigt eftersom jsonwebtoken är ett CommonJS paket
+import * as z from 'zod'
+import { logger, requireAuth } from './middleware.ts'
+import { type TokenResponse, type UserCredentials, type JwtPayload, userCredSchema, type Book } from './types.ts'
+import { getUser } from './fakeDb.ts'
+import { checkEnvFile } from './utils.ts'
+const { sign } = jwt  // nödvändigt eftersom jsonwebtoken är ett CommonJS paket
 
 // konfiguration
 const app: Express = express()
 const port: number = 3007
+checkEnvFile()
+
 
 // middleware
-export function formatTimestamp(date: Date = new Date()): string {
-    const pad = (n: number) => String(n).padStart(2, '0')
-    const yyyy = date.getFullYear()
-    const mm = pad(date.getMonth() + 1)
-    const dd = pad(date.getDate())
-    const hh = pad(date.getHours())
-    const min = pad(date.getMinutes())
-    const ss = pad(date.getSeconds())
-    return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`
-}
-const logger: RequestHandler = (req, res, next) => {
-	const now = formatTimestamp()
-	console.log(`${now}  ${req.method}  ${req.url}`)
-	next()
-}
 app.use('/', logger)
 app.use(express.json())
 
 
 // endpoints (resurser)
-type TokenResponse = {
-	jwt: string;
-}
-type UserCredentials = {
-	uuid: string;
-	username: string;
-	password: string;
-}
-type JwtPayload = {
-	uuid: string;
-}
 const SECRET = '1234'  // denna ska finnas i .env-filen. OBS! Använd ett SUPERSÄKERT lösenord när du gör detta på riktigt!
+
 
 app.post<{}, void | TokenResponse, UserCredentials>('/api/login', (req, res) => {
 	// kontrollera om användaren finns
-	// Att göra: validera body (med en middleware)
-	// Om body är felaktig, svara med 400
-	const input: UserCredentials = req.body
-	const maybeUser: UserCredentials | undefined = userDb.find(u => usersMatch(input, u))
+	const parsed = z.safeParse(userCredSchema, req.body)
+	if( !parsed.success ) {
+		// body är felaktig, svara med 400
+		res.sendStatus(400) // Bad request
+		return
+	}
+	const input: UserCredentials = parsed.data
+
+	// Använder en fejkad databas för att illustrera principen
+	const maybeUser: UserCredentials | undefined = getUser(input)
 
 	if( !maybeUser ) {
 		// Tala aldrig om för frontend om det var fel på användarnamnet eller lösenordet
@@ -57,31 +45,13 @@ app.post<{}, void | TokenResponse, UserCredentials>('/api/login', (req, res) => 
 	// skapa en JWT
 	// expiresIn kan vara ett nummer (antal sekunder) eller en sträng typ "15m"
 	// Vi använder en kort tid för att kunna testa
-	const token: string = sign({ uuid: maybeUser.uuid }, SECRET, { expiresIn: 10 })
+	const token: string = sign({ uuid: maybeUser.uuid }, SECRET, { expiresIn: 15 })
 	console.log(`Token skapad: ${token} `)
 	res.status(200).send({ jwt: token })
 })
-function usersMatch(input: UserCredentials, fromDb: UserCredentials): boolean {
-	// Vi förväntar oss att frontend trimmar strängarna och kräver att strängarna är exakt lika
-	if( input.username === fromDb.username && input.password === fromDb.password ) {
-		return true
-	}
-	return false
-}
-
-// Denna "databas" använder username istället för id
-const userDb: UserCredentials[] = [
-	{ uuid: '1', username: 'Valentino', password: 'hotpink' }
-]
 
 
-type Book = {
-	id: string;
-	title: string;
-	author: string;
-	borrowStatus: string;
-}
-app.get<{}, Book[]>('/api/books', (req, res) => {
+app.get<{}, Book[]>('/api/books', requireAuth, (req, res) => {
 	// finns Authorization header?
 	// kolla om användaren i auth header finns i databasen
 	// om ja: svara med boklistan
@@ -91,33 +61,11 @@ app.get<{}, Book[]>('/api/books', (req, res) => {
 		return
 	}
 
-	// plocka bort "Bearer " från auth-strängen
-	// console.log('Auth before:   ' + auth)
-	const token = auth.substring(7)
-	// console.log('Auth after:    ' + token)
-	try {
-		// Verify kan kasta fel om token är för gammal eller felaktig
-		const verifiedToken = verify(token, SECRET)
-		// console.log('Auth verified:  ', verifiedToken)
-
-		res.status(200).send(books)
-		return
-
-	} catch(error: unknown) {
-		if( error instanceof TokenExpiredError ) {
-			console.log('För gammal token! Var snabbare nästa gång, eller logga in igen!')
-			res.sendStatus(401)
-			return
-		} else if( error instanceof JsonWebTokenError ) {
-			console.log('Felaktig token! Logga in igen!')
-			res.sendStatus(401)
-			return
-		}
-		const message = (error instanceof Error) ? error.message : String(error)
-		console.log('Okänt fel!', message)
-		res.sendStatus(500) // okänt fel
-	}
+	res.status(200).send(books)
 })
+
+
+
 const books: Book[] = [
 	{ id: '1', title: 'Fellowship of the Ring', author: 'J.R.R. Tolkien', borrowStatus: 'lånad' },
 	{ id: '2', title: 'The Two Towers', author: 'J.R.R. Tolkien', borrowStatus: 'tillgänglig' },
