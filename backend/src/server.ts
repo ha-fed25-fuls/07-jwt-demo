@@ -1,17 +1,18 @@
 // import
 import express, { type Express, type RequestHandler } from 'express'
-import jwt, { type Jwt } from 'jsonwebtoken'
 import * as z from 'zod'
 import { logger, requireAuth } from './middleware.ts'
 import { type TokenResponse, type UserCredentials, type JwtPayload, userCredSchema, type Book, type LoginCredentials, loginCredSchema } from './types.ts'
-import { getUser } from './fakeDb.ts'
+import { createUser, getUser } from './fakeDb.ts'
 import { checkEnvFile } from './utils.ts'
+import jwt, { type Jwt } from 'jsonwebtoken'
 const { sign } = jwt  // nödvändigt eftersom jsonwebtoken är ett CommonJS paket
 
 // konfiguration
 const app: Express = express()
 const port: number = 3007
 checkEnvFile()
+const SECRET = process.env.SECRET!
 
 
 // middleware
@@ -20,10 +21,8 @@ app.use(express.json())
 
 
 // endpoints (resurser)
-const SECRET = '1234'  // denna ska finnas i .env-filen. OBS! Använd ett SUPERSÄKERT lösenord när du gör detta på riktigt!
 
-
-app.post<{}, void | TokenResponse, LoginCredentials>('/api/login', (req, res) => {
+app.post<{}, void | TokenResponse, LoginCredentials>('/api/login', async (req, res) => {
 	// kontrollera om användaren finns
 	const parsed = z.safeParse(loginCredSchema, req.body)
 	if( !parsed.success ) {
@@ -35,7 +34,7 @@ app.post<{}, void | TokenResponse, LoginCredentials>('/api/login', (req, res) =>
 	const input: LoginCredentials = parsed.data
 
 	// Använder en fejkad databas för att illustrera principen
-	const maybeUser: UserCredentials | undefined = getUser(input)
+	const maybeUser: UserCredentials | undefined = await getUser(input)
 
 	if( !maybeUser ) {
 		// Tala aldrig om för frontend om det var fel på användarnamnet eller lösenordet
@@ -44,12 +43,14 @@ app.post<{}, void | TokenResponse, LoginCredentials>('/api/login', (req, res) =>
 	}
 
 	// skapa en JWT
-	// expiresIn kan vara ett nummer (antal sekunder) eller en sträng typ "15m"
-	// Vi använder en kort tid för att kunna testa
-	const token: string = sign({ uuid: maybeUser.uuid }, SECRET, { expiresIn: 15 })
+	// expiresIn kan vara ett nummer (antal sekunder) eller en sträng typ "15m", "8h" osv.
+	const token: string = createJwt(maybeUser.uuid)
 	console.log(`Token skapad: ${token} `)
 	res.status(200).send({ jwt: token })
 })
+function createJwt(uuid: string): string {
+	return sign({ uuid }, SECRET, { expiresIn: '8h' })
+}
 
 
 app.get<{}, Book[]>('/api/books', requireAuth, (req, res) => {
@@ -66,6 +67,33 @@ app.get<{}, Book[]>('/api/books', requireAuth, (req, res) => {
 })
 
 
+app.post<{}, TokenResponse, LoginCredentials>('/api/register', async (req, res) => {
+	// kontrollera om användaren redan finns eller inte
+	// om finns: svara med status 409 Conflict
+	// om finns inte: skapa ny användare + lägg till i databasen + logga in (dvs svara med JWT)
+
+	const parsed = z.safeParse(loginCredSchema, req.body)
+	if( !parsed.success ) {
+		// body är felaktig, svara med 400
+		console.log('Felaktig body: ', req.body)
+		res.sendStatus(400) // Bad request
+		return
+	}
+	const input: LoginCredentials = parsed.data
+
+	const maybeUser: UserCredentials | undefined = await getUser(input)
+	if( maybeUser ) {
+		res.sendStatus(409)
+		return
+	}
+
+	const uuid: string = await createUser(input)
+	const token: string = createJwt(uuid)
+
+	console.log(`Registrerad med token: ${token} `)
+	res.status(200).send({ jwt: token })
+})
+
 
 const books: Book[] = [
 	{ id: '1', title: 'Fellowship of the Ring', author: 'J.R.R. Tolkien', borrowStatus: 'lånad' },
@@ -73,12 +101,6 @@ const books: Book[] = [
 	{ id: '3', title: 'Return of the King', author: 'J.R.R. Tolkien', borrowStatus: 'tillgänglig' },
 ]
 
-
-// Backend endpoints som behövs:
-// <!-- TODO: backend GET /books -->
-// <!-- TODO: backend POST /register (senare) -->
-// <!-- TODO: backend POST /signin -->
-// "signout" görs i frontend!
 
 // listen
 app.listen(port, () => {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 
+// TODO: flytta ut typer och hjälpfunktioner till egna filer
 type Form = { username: string; password: string; }
 type TokenResponse = {
 	jwt: string;
@@ -11,6 +12,24 @@ type Book = {
 	author: string;
 	borrowStatus: string;
 }
+type SetState<T> = (x: T) => void
+async function handleTokenResponse(response: Response, set: SetState<string>, username: string): Promise<void> {
+	console.log(`Response status: `, response.status)
+	if( response.status > 299 ) {
+		console.log(`Login/register failade med status från backend: ${response.status}.`)
+		return
+	}
+
+	const data: unknown = await response.json()
+	// TODO: validera TokenResponse
+	const token = (data as TokenResponse).jwt
+	localStorage.setItem(LS_KEY, token)
+
+	// Nu vet vi att användaren är autentiserad - spara användarnamnet
+	set(username)
+}
+const LS_KEY = 'gotebok-jwt'
+
 
 
 const App = () => {
@@ -32,7 +51,6 @@ const App = () => {
 	const isAuthenticated: boolean = user !== ''  // beräkna från state-variabler
 
 
-	const LS_KEY = 'gotebok-jwt'
 
 	const handleLogIn = async () => {
 		// bygg ett fetch-request
@@ -49,15 +67,29 @@ const App = () => {
 				},
 				body: JSON.stringify(form)
 			})
-			console.log(`Response status: `, response.status)
+			handleTokenResponse(response, setUser, form.username)
 
-			const data: unknown = await response.json()
-			// TODO: validera TokenResponse
-			const token = (data as TokenResponse).jwt
-			localStorage.setItem(LS_KEY, token)
+		} catch(error) {
+			// TODO
+		}
+	}
 
-			// Nu vet vi att användaren är autentiserad - spara användarnamnet
-			setUser(form.username)
+
+	const handleRegister = async () => {
+		// bygg ett fetch-request
+		// skicka till backend /api/register , vänta på svaret TokenResponse
+		// spara JWT i localStorage
+		// uppdatera state: setUser
+
+		try {
+			const response = await fetch('/api/register', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(form)
+			})
+			handleTokenResponse(response, setUser, form.username)
 
 		} catch(error) {
 			// TODO
@@ -93,7 +125,6 @@ const App = () => {
 		}
 	}
 
-
 	// TODO kom ihåg att lyfta ut kod till komponenter
 	return (
 		<div className="app">
@@ -125,6 +156,7 @@ const App = () => {
 
 						<div>
 							<button onClick={handleLogIn}> Logga in </button>
+							<button onClick={handleRegister}> Registrera </button>
 						</div>
 
 					</section>
